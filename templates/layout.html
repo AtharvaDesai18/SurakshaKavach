@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Suraksha Kavach{% endblock %}</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Audiowide&family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% block head %}{% endblock %}
+</head>
+<body>
+    <div class="site-wrapper">
+        <nav class="navbar">
+            <div class="nav-container">
+                <a href="{{ url_for('ids_dashboard') }}" class="nav-logo">
+                    <i class="fas fa-shield-alt"></i> Suraksha Kavach
+                </a>
+                <ul class="nav-menu">
+                    <li><a href="{{ url_for('ids_dashboard') }}" class="nav-link">Dashboard</a></li>
+                    <li><a href="{{ url_for('threat_lookup_page') }}" class="nav-link">Threat Lookup</a></li>
+                    <li><a href="{{ url_for('password_tools') }}" class="nav-link">Password Tools</a></li>
+                    <li><a href="{{ url_for('phishing_analyzer') }}" class="nav-link">Phishing Analyzer</a></li>
+                    <li><a href="{{ url_for('cyber_agent') }}" class="nav-link">Cyber Agent</a></li>
+                </ul>
+            </div>
+        </nav>
+
+        <main class="container">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    {% if not hide_footer %}
+    <footer class="footer">
+        <div class="footer-content">
+            <p>Suraksha Kavach by Atharva.</p>
+        </div>
+    </footer>
+    {% endif %}
+</body>
+</html>

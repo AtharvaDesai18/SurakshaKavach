@@ -1,0 +1,159 @@
+{% extends 'layout.html' %}
+
+{% block title %}Phishing Email Analyzer{% endblock %}
+
+{% block content %}
+<div class="intel-header">
+    <h1><i class="fas fa-fish"></i> Phishing Email Analyzer</h1>
+    <p class="subtitle">Paste the body of a suspicious email to analyze it for threats</p>
+</div>
+
+<div class="search-card">
+    <form method="POST" class="search-form">
+        <textarea name="email_content" rows="10" placeholder="Paste the full email content here..."></textarea>
+        <button type="submit" class="btn-search" style="margin-top: 1rem; width: 100%; justify-content: center;">
+            <i class="fas fa-search"></i> Analyze Email
+        </button>
+    </form>
+</div>
+
+{% if result %}
+<div class="result-card">
+    <div class="result-header">
+        <h2><i class="fas fa-poll-h"></i> Analysis Results</h2>
+        <div class="result-badge {% if result.risk_score > 70 %}danger{% elif result.risk_score > 40 %}warning{% else %}safe{% endif %}">
+            {% if result.risk_score > 70 %}
+                <i class="fas fa-skull-crossbones"></i> High Risk
+            {% elif result.risk_score > 40 %}
+                <i class="fas fa-exclamation-triangle"></i> Medium Risk
+            {% else %}
+                <i class="fas fa-check-circle"></i> Low Risk
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="result-grid">
+        <div class="result-item">
+            <div class="result-label">Overall Risk Score</div>
+            <div class="result-value">
+                <div class="score-meter">
+                    <!-- FIX: The span is now inside the score-fill div for proper layering -->
+                    <div class="score-fill" style="width: {{ result.risk_score }}%">
+                        <span>{{ result.risk_score }}%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="result-item">
+            <div class="result-label">Suspicious Keywords Found</div>
+            <div class="result-value">{{ result.keywords_found|length }}</div>
+        </div>
+    </div>
+
+    <div style="margin-top: 1.5rem;">
+        <h3><i class="fas fa-tags"></i> Keywords Detected:</h3>
+        {% if result.keywords_found %}
+            <div class="keywords-container">
+                {% for keyword in result.keywords_found %}
+                    <span class="keyword-tag">{{ keyword }}</span>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p style="color: var(--gray);">No suspicious keywords found.</p>
+        {% endif %}
+    </div>
+
+    <div style="margin-top: 1.5rem;">
+        <h3><i class="fas fa-link"></i> Links Found ({{ result.urls_found|length }}):</h3>
+        {% if result.urls_found %}
+            <ul class="links-list">
+                {% for url in result.urls_found %}
+                    <li>{{ url }}</li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p style="color: var(--gray);">No links found in the email body.</p>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+<style>
+    /* ... (other styles remain the same) ... */
+    .score-meter {
+        /* This is the outer container */
+        width: 100%;
+        height: 24px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 1rem;
+        position: relative; /* Important for positioning children */
+        overflow: hidden;
+    }
+
+    .score-fill {
+        /* This is the colored bar */
+        height: 100%;
+        border-radius: 1rem;
+        background: linear-gradient(90deg, var(--warning) 0%, var(--danger) 100%);
+        display: flex; /* Use flexbox to center the text */
+        align-items: center;
+        justify-content: center;
+    }
+
+    .score-fill span {
+        /* This is the text */
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: white;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+    }
+    textarea {
+        width: 100%;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 0.75rem;
+        padding: 1rem;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: white;
+        font-family: 'Poppins', sans-serif;
+        font-size: 1rem;
+        resize: vertical;
+    }
+    textarea:focus {
+        outline: none;
+        border-color: var(--primary);
+    }
+    .keywords-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 0.5rem;
+    }
+    .keyword-tag {
+        background-color: var(--warning);
+        color: var(--darkest);
+        padding: 0.25rem 0.75rem;
+        border-radius: 2rem;
+        font-size: 0.8em;
+        font-weight: 500;
+    }
+    .links-list {
+        list-style: none;
+        padding-left: 0;
+        margin-top: 0.5rem;
+        max-height: 200px;
+        overflow-y: auto;
+        background-color: rgba(255, 255, 255, 0.03);
+        padding: 1rem;
+        border-radius: 0.75rem;
+    }
+    .links-list li {
+        padding: 0.5rem 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        color: var(--gray);
+        word-break: break-all;
+    }
+    .links-list li:last-child {
+        border-bottom: none;
+    }
+</style>
+{% endblock %}

@@ -1,0 +1,22 @@
+# Flask and Web Server
+Flask
+gunicorn
+requests
+
+# Data Science and ML
+pandas
+scikit-learn
+joblib
+matplotlib
+seaborn
+pyod
+
+# LangChain and AI Agent
+langchain
+langchain-openai
+langchain-anthropic
+langchain-community
+pydantic
+python-dotenv
+ddgs
+wikipedia

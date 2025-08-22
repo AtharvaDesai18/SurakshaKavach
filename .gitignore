@@ -1,0 +1,15 @@
+# Virtual Environment
+venv/
+__pycache__/
+
+# Environment Variables
+.env
+
+# Data and Models (these are too large for GitHub)
+data/
+models/
+evaluation_results/
+database.db
+
+# IDE / Editor specific
+.vscode/

@@ -1,0 +1,98 @@
+{% extends 'layout.html' %}
+
+{% block title %}Threat Intelligence Lookup{% endblock %}
+
+{% block content %}
+    <div class="intel-header">
+        <h1><i class="fas fa-search-location"></i> Threat Intelligence Lookup</h1>
+        <p class="subtitle">Check IP reputation against global threat databases</p>
+    </div>
+
+    <div class="search-card">
+        <div class="search-header">
+            <h2><i class="fas fa-bullseye"></i> IP Investigation</h2>
+        </div>
+        
+        <!-- *** FIX: The form action now points to the correct endpoint *** -->
+        <form action="{{ url_for('threat_lookup_page') }}" method="POST" class="search-form">
+            <div class="input-group">
+                <i class="fas fa-search"></i>
+                <input type="text" name="ip_address" placeholder="Enter IP address (e.g., 8.8.8.8)" required>
+                <button type="submit" class="btn-search">
+                    <i class="fas fa-search"></i> Analyze
+                </button>
+            </div>
+        </form>
+        
+        <div class="search-tips">
+            
+        </div>
+    </div>
+
+    {% if result %}
+    <div class="result-card">
+        <div class="result-header">
+            <h2><i class="fas fa-poll-h"></i> Analysis Results</h2>
+            <div class="result-badge {% if result.isWhitelisted %}safe{% elif result.abuseConfidenceScore > 50 %}danger{% else %}warning{% endif %}">
+                {% if result.isWhitelisted %}
+                    <i class="fas fa-check-circle"></i> Whitelisted
+                {% elif result.abuseConfidenceScore > 50 %}
+                    <i class="fas fa-skull-crossbones"></i> Malicious
+                {% else %}
+                    <i class="fas fa-exclamation-triangle"></i> Suspicious
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="result-grid">
+            <div class="result-item">
+                <div class="result-label">IP Address</div>
+                <div class="result-value">{{ result.ipAddress }}</div>
+            </div>
+            <div class="result-item">
+                <div class="result-label">Country</div>
+                <div class="result-value">
+                    <i class="fas fa-globe"></i> {{ result.countryCode or 'N/A' }}
+                </div>
+            </div>
+            <div class="result-item">
+                <div class="result-label">Abuse Score</div>
+                <div class="result-value">
+                    <div class="score-meter">
+                        <div class="score-fill" style="width: {{ result.abuseConfidenceScore }}%"></div>
+                        <span>{{ result.abuseConfidenceScore }}%</span>
+                    </div>
+                </div>
+            </div>
+            <div class="result-item">
+                <div class="result-label">Total Reports</div>
+                <div class="result-value">{{ result.totalReports or 0 }}</div>
+            </div>
+            <div class="result-item">
+                <div class="result-label">Domain</div>
+                <div class="result-value">{{ result.domain or 'N/A' }}</div>
+            </div>
+            <div class="result-item">
+                <div class="result-label">ISP</div>
+                <div class="result-value">{{ result.isp or 'Unknown' }}</div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if error %}
+    <div class="error-card">
+        <div class="error-icon">
+            <i class="fas fa-exclamation-circle"></i>
+        </div>
+        <div class="error-content">
+            <h3>Error Processing Request</h3>
+            <p>{{ error }}</p>
+        </div>
+        <button class="btn-retry" onclick="window.location.href='{{ url_for('threat_lookup_page') }}'">
+            <i class="fas fa-sync-alt"></i> Try Again
+        </button>
+    </div>
+    {% endif %}
+
+{% endblock %}

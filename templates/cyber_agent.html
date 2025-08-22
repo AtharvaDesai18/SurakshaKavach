@@ -1,0 +1,199 @@
+{% extends 'layout.html' %}
+
+{% block title %}Cyber Agent{% endblock %}
+
+{% block head %}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/showdown/2.1.0/showdown.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="intel-header">
+    <h1><i class="fas fa-robot"></i> Cyber Agent</h1>
+    <p class="subtitle">Your AI-powered cybersecurity research assistant </p>
+</div>
+
+<div class="chat-container">
+    <div id="chat-box" class="chat-box">
+        <div class="message agent-message">
+            <div class="message-icon"><i class="fas fa-robot"></i></div>
+            <div class="message-content">
+                <p>Hello! I am Suraksha Kavach's Cyber Agent. Ask me a question, or upload an image.</p>
+            </div>
+        </div>
+    </div>
+    <div class="chat-input-container">
+        <!-- Image Preview Area -->
+        <div id="image-preview-container" class="image-preview-container" style="display: none;">
+            <img id="image-preview" src="#" alt="Image preview"/>
+            <button id="remove-image-btn" class="remove-image-btn">&times;</button>
+        </div>
+        <form id="chat-form" class="search-form">
+            <div class="input-group">
+                <!-- Hidden file input -->
+                <input type="file" id="image-upload" accept="image/*" style="display: none;">
+                <!-- Visible upload button -->
+                <button type="button" id="upload-btn" class="btn-action"><i class="fas fa-paperclip"></i></button>
+                <input type="text" id="user-input" placeholder="Ask a question or describe the image..." autocomplete="off">
+                <button type="submit" id="send-btn" class="btn-search">
+                    <i class="fas fa-paper-plane"></i> Send
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+    /* Add styles for the new image upload elements */
+    .image-preview-container {
+        position: relative;
+        width: 150px;
+        margin-bottom: 1rem;
+    }
+    #image-preview {
+        width: 100%;
+        height: auto;
+        border-radius: 0.75rem;
+        border: 1px solid var(--dark);
+    }
+    .remove-image-btn {
+        position: absolute;
+        top: -10px;
+        right: -10px;
+        background-color: var(--danger);
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 25px;
+        height: 25px;
+        font-size: 1.2em;
+        line-height: 25px;
+        text-align: center;
+        cursor: pointer;
+    }
+    .chat-container { height: 75vh; }
+    .message-content img {
+        max-width: 100%;
+        border-radius: 0.5rem;
+        margin-top: 1rem;
+    }
+</style>
+
+<script>
+    const chatForm = document.getElementById('chat-form');
+    const userInput = document.getElementById('user-input');
+    const chatBox = document.getElementById('chat-box');
+    const sendBtn = document.getElementById('send-btn');
+    const uploadBtn = document.getElementById('upload-btn');
+    const imageUpload = document.getElementById('image-upload');
+    const imagePreviewContainer = document.getElementById('image-preview-container');
+    const imagePreview = document.getElementById('image-preview');
+    const removeImageBtn = document.getElementById('remove-image-btn');
+
+    let uploadedImageBase64 = null;
+    const converter = new showdown.Converter();
+
+    // Trigger file input when upload button is clicked
+    uploadBtn.addEventListener('click', () => imageUpload.click());
+
+    // Handle image selection
+    imageUpload.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                uploadedImageBase64 = event.target.result;
+                imagePreview.src = uploadedImageBase64;
+                imagePreviewContainer.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+
+    // Handle image removal
+    removeImageBtn.addEventListener('click', () => {
+        uploadedImageBase64 = null;
+        imageUpload.value = ''; // Clear the file input
+        imagePreviewContainer.style.display = 'none';
+    });
+
+    chatForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const query = userInput.value.trim();
+        if (!query && !uploadedImageBase64) return;
+
+        appendMessage(query, 'user', uploadedImageBase64);
+        userInput.value = '';
+        sendBtn.disabled = true;
+        sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        
+        // Clear the image preview after sending
+        const imageToSend = uploadedImageBase64;
+        removeImageBtn.click();
+
+        const thinkingMessageId = 'thinking-' + Date.now();
+        appendMessage('Thinking...', 'agent', null, thinkingMessageId, true);
+
+        try {
+            const response = await fetch('/cyber-agent', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ query: query, image: imageToSend })
+            });
+
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let thinkingMessageElement = document.getElementById(thinkingMessageId).querySelector('.message-content');
+            let fullResponseText = '';
+            thinkingMessageElement.innerHTML = '';
+
+            while (true) {
+                const { value, done } = await reader.read();
+                if (done) break;
+                
+                fullResponseText += decoder.decode(value, {stream: true});
+                thinkingMessageElement.innerHTML = converter.makeHtml(fullResponseText);
+                chatBox.scrollTop = chatBox.scrollHeight;
+            }
+
+        } catch (error) {
+            console.error('Error:', error);
+            const thinkingMessageElement = document.getElementById(thinkingMessageId).querySelector('.message-content');
+            thinkingMessageElement.innerHTML = '<p>Sorry, something went wrong. Please try again.</p>';
+        } finally {
+            sendBtn.disabled = false;
+            sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Send';
+        }
+    });
+
+    function appendMessage(text, sender, imageBase64 = null, id = null, isThinking = false) {
+        const messageWrapper = document.createElement('div');
+        messageWrapper.classList.add('message', `${sender}-message`);
+        if (id) messageWrapper.id = id;
+
+        const icon = document.createElement('div');
+        icon.classList.add('message-icon');
+        icon.innerHTML = sender === 'user' ? '<i class="fas fa-user"></i>' : '<i class="fas fa-robot"></i>';
+        
+        const content = document.createElement('div');
+        content.classList.add('message-content');
+        if(isThinking) content.classList.add('thinking');
+
+        let html = '';
+        if (text) html += `<p>${text}</p>`;
+        if (imageBase64) html += `<img src="${imageBase64}" alt="User upload">`;
+        content.innerHTML = html;
+
+        messageWrapper.appendChild(icon);
+        messageWrapper.appendChild(content);
+        
+        if (sender === 'user') {
+            messageWrapper.innerHTML = '';
+            messageWrapper.appendChild(content);
+            messageWrapper.appendChild(icon);
+        }
+
+        chatBox.appendChild(messageWrapper);
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,180 @@
+{% extends 'layout.html' %}
+
+{% block title %}Suraksha Kavach Dashboard{% endblock %}
+
+{% block head %}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/luxon@2.3.1/build/global/luxon.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.1.0/dist/chartjs-adapter-luxon.min.js"></script>
+{% endblock %}
+
+{% block content %}
+    <div class="dashboard-header">
+        <h1><i class="fas fa-shield-alt"></i> Suraksha Kavach</h1>
+        <p class="subtitle">Real-time network intrusion detection and analysis</p>
+    </div>
+    
+    <div class="stats-grid">
+        <div class="stat-card blue-gradient">
+            <div class="stat-icon"><i class="fas fa-network-wired"></i></div>
+            <div class="stat-content">
+                <div class="stat-value" id="packets-processed">0</div>
+                <div class="stat-title">Packets Processed</div>
+            </div>
+        </div>
+        
+        <div class="stat-card red-gradient">
+            <div class="stat-icon"><i class="fas fa-exclamation-triangle"></i></div>
+            <div class="stat-content">
+                <div class="stat-value" id="anomalies-detected">0</div>
+                <div class="stat-title">Anomalies Detected</div>
+            </div>
+        </div>
+        
+        <div class="stat-card purple-gradient">
+            <div class="stat-icon"><i class="fas fa-chart-pie"></i></div>
+            <div class="stat-content">
+                <div class="stat-value" id="anomaly-rate">0.00%</div>
+                <div class="stat-title">Anomaly Rate</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="content-grid">
+        <div class="chart-container">
+            <div class="chart-header">
+                <h2><i class="fas fa-chart-line"></i> Anomaly Trend</h2>
+            </div>
+            <canvas id="anomalyChart"></canvas>
+        </div>
+        
+        <div class="alerts-container">
+            <div class="alerts-header">
+                <h2><i class="fas fa-bell"></i> Recent Alerts</h2>
+                <button class="btn-clear" onclick="clearData()">
+                    <i class="fas fa-trash-alt"></i> Clear All
+                </button>
+            </div>
+            <div id="alerts-list">
+                <div class="empty-state">
+                    <i class="fas fa-inbox"></i>
+                    <p>No alerts detected yet</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // All JavaScript for this page remains the same
+        const ctx = document.getElementById('anomalyChart').getContext('2d');
+        const anomalyChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                datasets: [{
+                    label: 'Anomalies per minute',
+                    data: [],
+                    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                    borderColor: 'rgba(99, 102, 241, 1)',
+                    borderWidth: 2,
+                    pointBackgroundColor: 'rgba(99, 102, 241, 1)',
+                    pointRadius: 3,
+                    pointHoverRadius: 5,
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        type: 'time',
+                        time: {
+                            unit: 'minute',
+                            tooltipFormat: 'HH:mm',
+                            displayFormats: { minute: 'HH:mm' }
+                        },
+                        grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                        ticks: { color: 'rgba(255, 255, 255, 0.7)' }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                        ticks: { color: 'rgba(255, 255, 255, 0.7)', stepSize: 1 }
+                    }
+                },
+                plugins: {
+                    legend: { labels: { color: 'rgba(255, 255, 255, 0.8)' } },
+                    tooltip: {
+                        backgroundColor: 'rgba(30, 41, 59, 0.9)',
+                        titleColor: 'rgba(255, 255, 255, 0.9)',
+                        bodyColor: 'rgba(255, 255, 255, 0.7)',
+                        borderColor: 'rgba(255, 255, 255, 0.1)',
+                        borderWidth: 1
+                    }
+                }
+            }
+        });
+
+        function updateDashboard() {
+            fetch('/api/data')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('packets-processed').innerText = data.stats.packets_processed.toLocaleString();
+                    document.getElementById('anomalies-detected').innerText = data.stats.anomalies_detected.toLocaleString();
+                    document.getElementById('anomaly-rate').innerText = data.stats.anomaly_rate.toFixed(2) + '%';
+
+                    const alertsList = document.getElementById('alerts-list');
+                    if (data.alerts.length === 0) {
+                        alertsList.innerHTML = `<div class="empty-state"><i class="fas fa-inbox"></i><p>No alerts detected yet</p></div>`;
+                    } else {
+                        let alertsHtml = '';
+                        data.alerts.forEach(alert => {
+                            const alertClass = alert.label.toLowerCase().includes('benign') ? 'alert-warning' : 'alert-critical';
+                            alertsHtml += `
+                                <div class="alert-item ${alertClass}">
+                                    <div class="alert-icon"><i class="fas fa-exclamation-circle"></i></div>
+                                    <div class="alert-content">
+                                        <div class="alert-header">
+                                            <span class="alert-title">${alert.label}</span>
+                                            <span class="alert-time">${alert.timestamp}</span>
+                                        </div>
+                                        <div class="alert-details">
+                                            <span><i class="fas fa-arrow-right"></i> ${alert.source_ip || 'N/A'} → ${alert.destination_ip || 'N/A'}</span>
+                                        </div>
+                                    </div>
+                                </div>`;
+                        });
+                        alertsList.innerHTML = alertsHtml;
+                    }
+                    updateChart(data.alerts);
+                })
+                .catch(error => console.error('Error fetching data:', error));
+        }
+
+        function updateChart(alerts) {
+            const minuteCounts = {};
+            alerts.forEach(alert => {
+                const minute = luxon.DateTime.fromSQL(alert.timestamp).startOf('minute').toMillis();
+                minuteCounts[minute] = (minuteCounts[minute] || 0) + 1;
+            });
+
+            const chartData = Object.keys(minuteCounts).map(time => ({
+                x: parseInt(time),
+                y: minuteCounts[time]
+            })).sort((a, b) => a.x - b.x);
+
+            anomalyChart.data.datasets[0].data = chartData;
+            anomalyChart.update();
+        }
+        
+        function clearData() {
+            fetch('/api/clear', { method: 'POST' })
+                .then(() => updateDashboard())
+                .catch(error => console.error('Error clearing data:', error));
+        }
+
+        setInterval(updateDashboard, 2000);
+        updateDashboard();
+    </script>
+{% endblock %}
